@@ -15,7 +15,7 @@ const chatSchema = new Schema({
         phone: String,
         status: {
             type: Boolean,
-            default: 1
+            default: true
         },
     },
     {

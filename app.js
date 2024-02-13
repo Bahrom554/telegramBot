@@ -14,13 +14,10 @@ app.use(cors());
 app.use(express.urlencoded({extended: false, limit: '50mb'}));
 app.use(express.static(path.join(__dirname, 'public')));
 const server = http.createServer(app);
-const {Bot} = require("grammy");
 const userRoute = require('./route/user');
+const botManager = new (require('./bot/botManager'));
+app.use('/user',userRoute);
 
-const bot = new Bot("6526252078:AAEws_Mf0oiedlR1ykXp2pEfMkHDI8Ofx3Q");
-const botManager = new (require('./bot/botManager'))(bot);
-app.set('bot', botManager);
-app.use('/',userRoute);
 app.use((error, req, res, next) => {
     const status = error.statusCode || 500;
     const message = error.message;

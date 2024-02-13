@@ -29,8 +29,12 @@ exports.saveAndSend = async(req, res, next)=>{
 
     try {
         let files = req.files || null;
-        let bot = req.app.get('bot');
-        await dataService.saveAndSend(req.body, files, bot);
+           
+        if (!files.length && !req.body.message) {
+            let error = new Error('you should send message or file!');
+            throw error;
+        }
+        await dataService.saveAndSend(req.body, files);
         res.send("ok");
     } catch (err) {
         err.statusCode = err.statusCode || 500;

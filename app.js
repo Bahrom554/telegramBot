@@ -16,7 +16,7 @@ app.use(express.static(path.join(__dirname, 'public')));
 const server = http.createServer(app);
 const userRoute = require('./route/user');
 const botManager = new (require('./bot/botManager'));
-app.use('/user',userRoute);
+app.use('/',userRoute);
 
 app.use((error, req, res, next) => {
     const status = error.statusCode || 500;

@@ -3,6 +3,10 @@ const Schema = mongoose.Schema;
 const mongoosePaginate = require('mongoose-paginate-v2');
 const messageSchema = new Schema({
     file: {},
+    type:{
+        type: String,
+        default: 'text'
+    },
     file_id: {
         type: String,
         default: null

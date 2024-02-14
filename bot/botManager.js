@@ -1,6 +1,6 @@
 const { Bot, InputFile, InputMediaBuilder } = require("grammy");
 const AppConfig =require('../config/app')();
-const bot = new Bot("6526252078:AAEws_Mf0oiedlR1ykXp2pEfMkHDI8Ofx3Q");
+const bot = new Bot(AppConfig.botToken);
 const Chat = require('../schema/chats');
 const CONST = require('../utils/constants')
 class BotManager {

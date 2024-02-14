@@ -22,7 +22,10 @@ services:
     restart: always
 
   cache:
-    image: 'redis:alpine' 
+    image: redis:6.2.1-alpine
+    restart: always
+    volumes: 
+      - cache:/data
 
   nginx:
     build:
@@ -38,3 +41,4 @@ services:
 
 volumes:
   qomar-db:
+  cache:

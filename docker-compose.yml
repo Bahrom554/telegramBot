@@ -7,7 +7,7 @@ services:
       - .env
     depends_on:
       - mongo
-      - redis
+      - cache
     volumes:
       - .:/usr/src/app
       - /usr/src/app/node_modules
@@ -21,14 +21,8 @@ services:
     command: --quiet
     restart: always
 
-  redis:
-    build:
-      context: ./redis/
-    restart: always
-    command: sh -c "./init.sh"
-    privileged: true
-    volumes:
-      - ./redis/data:/data  
+  cache:
+    image: 'redis:alpine' 
 
   nginx:
     build:

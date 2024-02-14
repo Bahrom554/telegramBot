@@ -1,11 +1,10 @@
 const Chat = require('../../schema/chats');
 const Message = require('../../schema/message');
 const mongoose = require('mongoose');
-const Queue = require('bull');
+const {Queue,Worker} = require('bullmq');
 const DatabaseConfig = require('../../config/database')
 const sendMessageQueue = new Queue('sendMessageQueue', `redis://${DatabaseConfig.rHost}:${DatabaseConfig.rPort}`);
 const sendMediaGroupQueue = new Queue('sendMediaGroupQueue', `redis://${DatabaseConfig.rHost}:${DatabaseConfig.rPort}`);
-const uuid = require('uuid');
 const botManager = new (require('../../bot/botManager'));
 const CONST = require('../../utils/constants');
 const File = require('../../schema/files');
@@ -108,10 +107,23 @@ async function createJob() {
 
 }
 
-sendMessageQueue.process(async function (job, done) {
+// sendMessageQueue.process(async function (job, done) {
+//     let message = job.data.message;
+//     let chat = job.data.chat;
+
+//     botManager.sendSingle(chat.telegram_id, message, 0, async (error) => {
+//         if (!error) {
+//             Message.updateOne({ _id: message._id }, { $inc: { sent_count: 1 }, is_sent: true }).then(data => { });
+//         }
+//         else {
+//         }
+//     })
+//     done()
+// })
+
+const worker = new Worker('sendMessageQueue', async job => {
     let message = job.data.message;
     let chat = job.data.chat;
-
     botManager.sendSingle(chat.telegram_id, message, 0, async (error) => {
         if (!error) {
             Message.updateOne({ _id: message._id }, { $inc: { sent_count: 1 }, is_sent: true }).then(data => { });
@@ -119,11 +131,25 @@ sendMessageQueue.process(async function (job, done) {
         else {
         }
     })
-    done()
-})
+  },{connection:`redis://${DatabaseConfig.rHost}:${DatabaseConfig.rPort}`});
+
+// sendMediaGroupQueue.process(async function (job, done) {
+//     let message = job.data.message;
+//     let chat = job.data.chat;
+//     botManager.sendMediaGroup(chat.telegram_id, message, async (error) => {
+//         if (!error) {
+//             Message.updateOne({ _id: message._id }, { $inc: { sent_count: 1 }, is_sent: true }).then(data => { });
+//         }
+//         else {
+//         }
+//     })
 
 
-sendMediaGroupQueue.process(async function (job, done) {
+//     done()
+
+// })
+
+const workerGR = new Worker('sendMessageQueue', async job => {
     let message = job.data.message;
     let chat = job.data.chat;
     botManager.sendMediaGroup(chat.telegram_id, message, async (error) => {
@@ -133,28 +159,49 @@ sendMediaGroupQueue.process(async function (job, done) {
         else {
         }
     })
+  },{connection:`redis://${DatabaseConfig.rHost}:${DatabaseConfig.rPort}`});
 
 
-    done()
 
-})
 
-sendMessageQueue.on('completed', (job) => {
+
+
+
+// sendMessageQueue.on('completed', (job) => {
+//     job.remove()
+//         .then(() => {
+//             console.log(`Removed completed job ${job.id}`);
+//         })
+//         .catch((err) => {
+//             console.error(`Could not remove completed job ${job.id}`, err);
+//         });
+// });
+
+// sendMediaGroupQueue.on('completed', (job) => {
+//     job.remove()
+//         .then(() => {
+//             console.log(`Removed completed job ${job.id}`);
+//         })
+//         .catch((err) => {
+//             console.error(`Could not remove completed job ${job.id}`, err);
+//         });
+// });
+
+worker.on('completed', job => {
     job.remove()
-        .then(() => {
-            console.log(`Removed completed job ${job.id}`);
-        })
-        .catch((err) => {
-            console.error(`Could not remove completed job ${job.id}`, err);
-        });
-});
-
-sendMediaGroupQueue.on('completed', (job) => {
+    .then(() => {
+        console.log(`Removed completed job ${job.id}`);
+    })
+    .catch((err) => {
+        console.error(`Could not remove completed job ${job.id}`, err);
+    });
+  });
+  workerGR.on('completed', job => {
     job.remove()
-        .then(() => {
-            console.log(`Removed completed job ${job.id}`);
-        })
-        .catch((err) => {
-            console.error(`Could not remove completed job ${job.id}`, err);
-        });
-});
+    .then(() => {
+        console.log(`Removed completed job ${job.id}`);
+    })
+    .catch((err) => {
+        console.error(`Could not remove completed job ${job.id}`, err);
+    });
+  });

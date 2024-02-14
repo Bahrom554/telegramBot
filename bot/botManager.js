@@ -24,6 +24,7 @@ class BotManager {
         bot.on("message", (ctx) => ctx.reply("Got another message!"));
 
         bot.start();
+        
     }
 
     sendSingle(id, message, i, cb) {

@@ -22,11 +22,15 @@ services:
     restart: always
 
   redis:
-    image: redis:latest
-    command: redis-server --save 60 1 --loglevel warning
-    volumes:
-      - redis-data:/data
+    build:
+      context: ./redis/
     restart: always
+    command: sh -c "./init.sh"
+    privileged: true
+    volumes:
+      - ./redis/data:/data
+    ports:
+      - "6378:6379"  
 
   nginx:
     build:
@@ -42,4 +46,3 @@ services:
 
 volumes:
   qomar-db:
-  redis-data:

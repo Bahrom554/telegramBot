@@ -1,15 +1,5 @@
 require('dotenv').config();
 
-/**
- * This file is responsible for providing an Object representation of the database configuration.
- *
- * @author Ilori Stephen <stephenilori458@gmail.com>
- * @param {Null}
- * @returns {Object} Database
- * @name Database
- * @alias DatabaseConfiguration
- *
- */
 
 module.exports = () => {
     return {

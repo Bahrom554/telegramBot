@@ -1,0 +1,45 @@
+version: "3.9"
+
+services:
+  app:
+    build: .
+    env_file:
+      - .env
+    depends_on:
+      - mongo
+      - redis
+    volumes:
+      - .:/usr/src/app
+      - /usr/src/app/node_modules
+    restart: always
+
+  mongo:
+    image: mongo:4.4
+    container_name: mongo_db_q
+    volumes:
+      - qomar-db:/data/db
+    command: --quiet
+    restart: always
+
+  redis:
+    image: redis:latest
+    command: redis-server --save 60 1 --loglevel warning
+    volumes:
+      - redis-data:/data
+    restart: always
+
+  nginx:
+    build:
+      context: ./nginx/
+    volumes:
+      - ./public:/var/www/html/public
+      - /var/www/html/win-sock/ui:/var/www/ui
+    depends_on:
+      - app
+    ports:
+      - "4080:80"
+    restart: always    
+
+volumes:
+  qomar-db:
+  redis-data:

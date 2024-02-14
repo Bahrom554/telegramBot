@@ -2,7 +2,6 @@ const mongoose = require('mongoose');
 const Schema = mongoose.Schema;
 const mongoosePaginate = require('mongoose-paginate-v2');
 const messageSchema = new Schema({
-    file: {},
     type:{
         type: String,
         default: 'text'
@@ -21,7 +20,8 @@ const messageSchema = new Schema({
         type: Number,
         min: 0,
         default: 0,
-    }
+    },
+    files: [{ type: Schema.Types.ObjectId, ref: 'File' }]
 },
     {
         timestamps: {
@@ -34,5 +34,12 @@ messageSchema.plugin(mongoosePaginate);
 messageSchema.pre('save', function (next) {
     next();
 });
+
+messageSchema.methods.toJSON = function() {
+    var obj = this.toObject();
+    delete obj.__v;
+    return obj;
+   }
+
 const Message = mongoose.model('Message', messageSchema);
 module.exports = Message;

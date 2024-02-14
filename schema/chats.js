@@ -32,5 +32,13 @@ chatSchema.pre('save', function (next) {
     next();
 });
 
+chatSchema.methods.toJSON = function() {
+    var obj = this.toObject();
+    delete obj.__v;
+    return obj;
+   }
+
+ 
+
 const Chat = mongoose.model('Chat', chatSchema);
 module.exports = Chat;

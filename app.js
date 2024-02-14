@@ -30,7 +30,6 @@ mongoose.connect(`mongodb://${DatabaseConfig.dbHost}:${DatabaseConfig.dbPort}/${
 }).then(function (db) {
     server.listen(AppConfiguration.appPort, async function () {
 
-        /* Creating uploads directory if it does not exist */
         if (!fs.existsSync(dir)) {
             fs.mkdirSync(dir, {recursive: true});
         }

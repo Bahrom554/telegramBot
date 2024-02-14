@@ -28,14 +28,14 @@ exports.messages = async (req, res, next) => {
 exports.saveAndSend = async(req, res, next)=>{
 
     try {
-        let files = req.files || null;
-           
+        
+        let files = req?.files || [];
         if (!files.length && !req.body.message) {
             let error = new Error('you should send message or file!');
             throw error;
         }
         await dataService.saveAndSend(req.body, files);
-        res.send("ok");
+        res.json({message:"sucess"});
     } catch (err) {
         err.statusCode = err.statusCode || 500;
         next(err);

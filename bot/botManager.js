@@ -1,8 +1,8 @@
 const { Bot, InputFile, InputMediaBuilder } = require("grammy");
-const bot = new Bot("6526252078:AAEws_Mf0oiedlR1ykXp2pEfMkHDI8Ofx3Q");
+const AppConfig =require('../config/app')()
+const bot = new Bot(AppConfig.botToken);
 const Chat = require('../schema/chats');
 const CONST = require('../utils/constants')
-const { createReadStream } = require('fs');
 class BotManager {
     constructor() {
         this.clientEvents();
@@ -26,9 +26,9 @@ class BotManager {
         bot.start();
     }
 
-    sendSingle(id, message, cb) {
-        let text = message.message;
-        let path = message?.file?.path || null;
+    sendSingle(id, message, i, cb) {
+        let text = i? null : message.message;
+        let path = message?.files[i]?.path || null;
         message.type = path ? message.type : CONST.message.text;
         switch (message.type) {
             case CONST.message.audio:
@@ -83,54 +83,51 @@ class BotManager {
                     return cb(error);
                 })
                 break;
-
         }
-
-
-
     }
 
-    sendMediaGroup(id, messages, cb) {
+    sendMediaGroup(id, message, cb) {
         let mediaGroup = [];
         let ids = [];
         let captionWrited = false;
-        for (let i = 0; i < messages.length; i++) {
-            ids.push(messages[i]._id);
-
-            if (messages[i]?.file?.mimetype.startsWith("image")) {
-
-                let path = messages[i]?.file?.path || null;
-                if (!captionWrited && messages[i].message) {
-                    mediaGroup.push(InputMediaBuilder.photo(new InputFile(path), { caption: messages[i]?.message }))
+        let files = message.files;
+        let err =null;
+        for (let i = 0; i < files.length; i++) {
+            let path = files[i]?.path || null;
+            if (files[i]?.mimetype.startsWith("image")) {
+                if (!captionWrited && message.message) {
+                    mediaGroup.push(InputMediaBuilder.photo(new InputFile(path), { caption: message.message }))
                     captionWrited = true;
                 }
                 else {
                     mediaGroup.push(InputMediaBuilder.photo(new InputFile(path)))
                 }
 
-            } else if (messages[i]?.file?.mimetype.startsWith("video")) {
+            } else if (files[i]?.mimetype.startsWith("video")) {
 
-                let path = messages[i]?.file?.path || null;
-
-                if (!captionWrited && messages[i]?.message) {
-                    mediaGroup.push(InputMediaBuilder.video(new InputFile(path), { caption: messages[i]?.message }))
+                if (!captionWrited && message.message) {
+                    mediaGroup.push(InputMediaBuilder.video(new InputFile(path), { caption: message.message }))
                     captionWrited = true;
                 }
                 else {
                     mediaGroup.push(InputMediaBuilder.video(new InputFile(path)))
-                }
+                } 
 
+            } else {
+                this.sendSingle(id, message, i, (error)=>{
+                    if(error){err = error}
+                })
+                if(err) break;
             }
-
         }
-        if (!mediaGroup.length) return cb(true, []);
-        bot.api.sendMediaGroup(id, mediaGroup).then(data => {
-            return cb(false, ids);
+        if (!mediaGroup.length) return cb(err);
+          bot.api.sendMediaGroup(id, mediaGroup).then(data => {
+            return cb(false);
         }).catch(error => {
             if (error.error_code == 403) {
                 Chat.updateOne({ _id: id }, { status: 0 });
             }
-            return cb(error, []);
+            return cb(error);
         })
     }
 

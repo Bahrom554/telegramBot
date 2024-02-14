@@ -2,12 +2,13 @@ const Chat = require('../../schema/chats');
 const Message = require('../../schema/message');
 const mongoose = require('mongoose');
 const Queue = require('bull');
-const sendMessageQueue = new Queue('sendMessageQueue', 'redis://127.0.0.1:6379');
-const sendMediaGroupQueue = new Queue('sendMediaGroupQueue', 'redis://127.0.0.1:6379');
+const DatabaseConfig = require('../../config/database')
+const sendMessageQueue = new Queue('sendMessageQueue', `redis://${DatabaseConfig.rHost}:${DatabaseConfig.rPort}`);
+const sendMediaGroupQueue = new Queue('sendMediaGroupQueue', `redis://${DatabaseConfig.rHost}:${DatabaseConfig.rPort}`);
 const uuid = require('uuid');
 const botManager = new (require('../../bot/botManager'));
 const CONST = require('../../utils/constants');
-const { text } = require('express');
+const File = require('../../schema/files');
 
 
 exports.getUsers = async function (page, limit, search) {
@@ -39,6 +40,7 @@ exports.geMessages = async function (page, limit, search) {
     const options = {
         page: page,
         limit: limit,
+        populate: 'files',
         sort: { created_at: -1 },
     };
 
@@ -55,33 +57,31 @@ exports.geMessages = async function (page, limit, search) {
 
 exports.saveAndSend = async function (data, files) {
     try {
-    //    return await Message.deleteMany({});
-        let List = [];
-        let file_id = null;
-        let single = true;
-        if (files && files.length > 0) {
-            if (files.length > 1) { single = false; }
-            file_id = uuid.v4();
+        // await File.deleteMany({});
+        // return await Message.deleteMany({});
+        let message;
+        let list=[];
+        if (files && files.length) {
             files.forEach(file => {
-                List.push({
-                    message: data.message,
-                    file: file,
-                    file_id: file_id,
-                    type: data.type
-
+                    list.push({
+                    originalname: file.originalname,
+                    fileUrl: 'uploads/' + file.filename,
+                    path: file.path,
+                    name: file.filename,
+                    mimetype: file.mimetype
                 })
-            });
+            })
 
-            await Message.insertMany(List);
+            let _files = await File.insertMany(list);
+           
+            const fileIds = _files.map(file => file._id);
+            message = await Message.create({ message: data.message, type: data.type, files: fileIds });
         }
         else {
-            await Message.create({ message: data.message, type: data.type });
-
-
+            message = await Message.create({ message: data.message, type: data.type });
         }
-        createJob(file_id, single);
-
-        return { message: "ok" };
+        createJob();
+        return message;
 
     } catch (err) {
         err.statusCode = err.statusCode || 500;
@@ -90,32 +90,31 @@ exports.saveAndSend = async function (data, files) {
 
 }
 
-async function createJob(file_id, single) {
+async function createJob() {
     let chats = await Chat.find({ status: true });
-    let messages;
-    if (single) {
-        messages = await Message.find({ is_sent: false, type: { $ne: CONST.message.group } });
-        messages.forEach(message => {
-            chats.forEach(chat => {
-                sendMessageQueue.add({ message, chat });
-            });
-        });
-    } else {
-        messages = await Message.find({ is_sent: false, file_id: file_id });
+    let messages = await Message.find({ is_sent: false }).populate('files');
+    messages.forEach(message => {
         chats.forEach(chat => {
-            sendMediaGroupQueue.add({ messages, chat });
-        })
-
-    }
+            if(message.files && message.files.length > 1)
+            {
+                sendMediaGroupQueue.add({message, chat});
+            }
+            else{
+                sendMessageQueue.add({ message, chat });
+            }
+        });
+        
+    });
 
 }
 
 sendMessageQueue.process(async function (job, done) {
     let message = job.data.message;
     let chat = job.data.chat;
-    botManager.sendSingle(chat.telegram_id, message, async(error) => {
+
+    botManager.sendSingle(chat.telegram_id, message, 0, async (error) => {
         if (!error) {
-            Message.updateOne({ _id: message._id }, { $inc: { sent_count: 1 }, is_sent: true }).then(data=>{});
+            Message.updateOne({ _id: message._id }, { $inc: { sent_count: 1 }, is_sent: true }).then(data => { });
         }
         else {
         }
@@ -125,38 +124,37 @@ sendMessageQueue.process(async function (job, done) {
 
 
 sendMediaGroupQueue.process(async function (job, done) {
-    let messages = job.data.messages;
+    let message = job.data.message;
     let chat = job.data.chat;
-    botManager.sendMediaGroup(chat.telegram_id, messages, async(error, ids) => {
+    botManager.sendMediaGroup(chat.telegram_id, message, async (error) => {
         if (!error) {
-           Message.updateMany({ _id: { $in: ids } }, { $inc: { sent_count: 1 }, is_sent: true }).then(data=>{});
-          console.log("status", a)
+            Message.updateOne({ _id: message._id }, { $inc: { sent_count: 1 }, is_sent: true }).then(data => { });
         }
         else {
         }
     })
 
 
-done()
+    done()
 
 })
 
 sendMessageQueue.on('completed', (job) => {
     job.remove()
-      .then(() => {
-        console.log(`Removed completed job ${job.id}`);
-      })
-      .catch((err) => {
-        console.error(`Could not remove completed job ${job.id}`, err);
-      });
-  });
+        .then(() => {
+            console.log(`Removed completed job ${job.id}`);
+        })
+        .catch((err) => {
+            console.error(`Could not remove completed job ${job.id}`, err);
+        });
+});
 
-  sendMediaGroupQueue.on('completed', (job) => {
+sendMediaGroupQueue.on('completed', (job) => {
     job.remove()
-      .then(() => {
-        console.log(`Removed completed job ${job.id}`);
-      })
-      .catch((err) => {
-        console.error(`Could not remove completed job ${job.id}`, err);
-      });
-  });
+        .then(() => {
+            console.log(`Removed completed job ${job.id}`);
+        })
+        .catch((err) => {
+            console.error(`Could not remove completed job ${job.id}`, err);
+        });
+});

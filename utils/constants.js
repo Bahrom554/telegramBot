@@ -8,12 +8,15 @@ exports.defaults = {
 
 exports.message = {
 
-    type: ['audio', 'photo', 'doc', 'video', 'group','text'],
+    type: ['audio', 'photo', 'doc', 'video','text','group'],
     audio:'audio',
     photo:'photo',
     doc:'doc',
     video:'video',
-    group:'group',
     text:'text'
 
 } 
+exports.mimeType ={
+    image:['jpeg','jpg','png','gif','bmp','tiff','tif','svg','webp','heif','heic'],
+    video:['mp4','webm','ogv','ogg','avi','mov','mpeg','mpg']
+}

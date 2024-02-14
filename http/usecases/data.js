@@ -3,7 +3,6 @@ const Message = require('../../schema/message');
 const mongoose = require('mongoose');
 const Queue = require('bull');
 const DatabaseConfig = require('../../config/database')()
-console.log("gege", `redis://${DatabaseConfig.rHost}:${DatabaseConfig.rPort}`)
 const sendMessageQueue = new Queue('sendMessageQueue', `redis://${DatabaseConfig.rHost}:${DatabaseConfig.rPort}`);
 const sendMediaGroupQueue = new Queue('sendMediaGroupQueue', `redis://${DatabaseConfig.rHost}:${DatabaseConfig.rPort}`);
 const uuid = require('uuid');
@@ -112,7 +111,6 @@ async function createJob() {
 sendMessageQueue.process(async function (job, done) {
     let message = job.data.message;
     let chat = job.data.chat;
-    console.log("lol")
     botManager.sendSingle(chat.telegram_id, message, 0, async (error) => {
         if (!error) {
             Message.updateOne({ _id: message._id }, { $inc: { sent_count: 1 }, is_sent: true }).then(data => { });
@@ -140,22 +138,22 @@ sendMediaGroupQueue.process(async function (job, done) {
 
 })
 
-// sendMessageQueue.on('completed', (job) => {
-//     job.remove()
-//         .then(() => {
-//             console.log(`Removed completed job ${job.id}`);
-//         })
-//         .catch((err) => {
-//             console.error(`Could not remove completed job ${job.id}`, err);
-//         });
-// });
+sendMessageQueue.on('completed', (job) => {
+    job.remove()
+        .then(() => {
+            console.log(`Removed completed job ${job.id}`);
+        })
+        .catch((err) => {
+            console.error(`Could not remove completed job ${job.id}`, err);
+        });
+});
 
-// sendMediaGroupQueue.on('completed', (job) => {
-//     job.remove()
-//         .then(() => {
-//             console.log(`Removed completed job ${job.id}`);
-//         })
-//         .catch((err) => {
-//             console.error(`Could not remove completed job ${job.id}`, err);
-//         });
-// });
+sendMediaGroupQueue.on('completed', (job) => {
+    job.remove()
+        .then(() => {
+            console.log(`Removed completed job ${job.id}`);
+        })
+        .catch((err) => {
+            console.error(`Could not remove completed job ${job.id}`, err);
+        });
+});

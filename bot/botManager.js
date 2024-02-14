@@ -88,7 +88,6 @@ class BotManager {
 
     sendMediaGroup(id, message, cb) {
         let mediaGroup = [];
-        let ids = [];
         let captionWrited = false;
         let files = message.files;
         let err =null;
@@ -114,6 +113,7 @@ class BotManager {
                 } 
 
             } else {
+                message.type ='doc';
                 this.sendSingle(id, message, i, (error)=>{
                     if(error){err = error}
                 })

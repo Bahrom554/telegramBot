@@ -12,6 +12,8 @@ services:
       - .:/usr/src/app
       - /usr/src/app/node_modules
     restart: always
+    ports:
+      - "4080:3000"
 
   mongo:
     image: mongo:4.4
@@ -27,17 +29,17 @@ services:
     volumes: 
       - cache:/data
 
-  nginx:
-    build:
-      context: ./nginx/
-    volumes:
-      - ./public:/var/www/html/public
-      - /var/www/html/win-sock/ui:/var/www/ui
-    depends_on:
-      - app
-    ports:
-      - "4080:80"
-    restart: always    
+  # nginx:
+  #   build:
+  #     context: ./nginx/
+  #   volumes:
+  #     - ./public:/var/www/html/public
+  #     - /var/www/html/win-sock/ui:/var/www/ui
+  #   depends_on:
+  #     - app
+  #   ports:
+  #     - "4080:80"
+  #   restart: always    
 
 volumes:
   qomar-db:

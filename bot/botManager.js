@@ -18,10 +18,10 @@ class BotManager {
                 chat.status = 1;
                 await chat.save();
             }
-            ctx.reply("Welcome! Up and running.")
+            ctx.reply("<b>Что умеет этот бот?</b>\n\nMoli bilan Shom jihodiga o'z hissasini qo'shmoqchi bo'lgan birodarlar.\n\nTelegram: t.me/Haris13",{ parse_mode: 'HTML' })
         });
 
-        bot.on("message", (ctx) => ctx.reply("Got another message!"));
+        // bot.on("message", (ctx) => ctx.reply("Got another message!"));
 
         bot.start();
     }
